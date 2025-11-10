@@ -1,14 +1,12 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.0.7"
+version: "0.0.8" # <-- Bumped version
 slug: "fing_agent"
 
 # --- Build Process ---
-build_from:
-  aarch64: "fing/fing-agent:latest"
-  amd64: "fing/fing-agent:latest"
-  armv7: "fing/fing-agent:latest"
-  
+# The 'build_from:' section has been REMOVED.
+# The Dockerfile now handles the 'FROM' line directly.
+
 # --- Network Settings (CRITICAL) ---
 host_network: true
 
@@ -25,21 +23,14 @@ arch:
   - aarch64
   - amd64
   - armv7
-  
+
 # --- Start & Boot ---
 init: false # We are using our own run.sh
 startup: "application"
 boot: "auto"
 
-# --- NEW PROFESSIONAL SECTION ---
-# Link to your README.md file
+# --- Professional Section ---
 documentation: "https://github.com/sambarlick/ha-addons/blob/main/fing_agent/README.md"
-
-# Link to your repo's "Issues" page
 support: "https://github.com/sambarlick/ha-addons/issues"
-
-# Link to the original Fing website
 url: "https://www.fing.com"
-
-# Your GitHub username
 codeowners: ["@sambarlick"]
