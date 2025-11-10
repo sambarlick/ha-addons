@@ -8,12 +8,8 @@ FROM fing/fing-agent:latest AS fing_files
 FROM ${BUILD_FROM}
 
 # --- THIS IS THE FIX ---
-# Install the missing Debian/Ubuntu compatibility libraries
-# libc6-compat (for basic C libraries)
-# libstdc++ (for C++ libraries)
-# libintl (for C++ localization)
-# boost (for the libboost libraries)
-RUN apk add --no-cache libc6-compat libstdc++ libintl boost
+# Install the GNU (Debian) compatibility libraries for Alpine
+RUN apk add --no-cache libc6-compat libgcompat
 
 # --- Copy The Files ---
 COPY --from=fing_files /usr/local/ /usr/local/
