@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.17..."
+echo "[Fing Agent] Starting add-on v0.2.18..."
 echo "[Fing Agent] This is now running INSIDE the official container."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
 AGENT_EXE="fingagent"
 AGENT_PATH="${AGENT_DIR}/${AGENT_EXE}"
-FING_DATA_DIR="/app/fingdata"
+FING_DATA_DIR="/app/fappdata"
 HA_DATA_DIR="/data" # This is where HA maps our 'data:rw'
 
 echo "[Fing Agent] Checking for agent at ${AGENT_PATH}..."
 if [ ! -f "${AGENT_PATH}" ]; then
-    echo "[Fing Agent] FATAL: File not found at ${AGENT_PATH}."
+    echo "[FG Agent] FATAL: File not found at ${AGENT_PATH}."
     exit 1
 fi
 
