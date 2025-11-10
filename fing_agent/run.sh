@@ -30,4 +30,4 @@ ln -sfn /data /app/fingdata
 echo "[Fing Agent] Starting the Fing Agent process..."
 
 # 'exec' replaces this script with the agent process
-exec /usr/local/FingAgent/fingagent
+exec /usr/local/FingAgent/bin/fingagent
