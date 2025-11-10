@@ -1,6 +1,6 @@
 name: "Fing Agent (Local)"
 description: "Runs the official fing/fing-agent container"
-version: "1.0.02"
+version: "1.0.03"
 slug: "fing_agent"
 
 # --- Build Process ---
@@ -19,6 +19,7 @@ host_network: true
 # Required for network administration tasks as per Fing's docs
 privileged:
   - NET_ADMIN
+  - SYS_ADMIN
 
 # --- Persistent Data ---
 # This maps the add-on's persistent folder to /data inside the container
