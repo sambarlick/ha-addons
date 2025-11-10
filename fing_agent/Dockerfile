@@ -8,8 +8,9 @@ FROM fing/fing-agent:latest AS fing_files
 FROM ${BUILD_FROM}
 
 # --- THIS IS THE FIX ---
-# Install the GNU (Debian) compatibility libraries for Alpine
-RUN apk add --no-cache libc6-compat libgcompat
+# Installing the correct GNU compatibility library.
+# The package is 'gcompat', not 'libgcompat'.
+RUN apk add --no-cache libc6-compat gcompat
 
 # --- Copy The Files ---
 COPY --from=fing_files /usr/local/ /usr/local/
