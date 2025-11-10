@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.4..."
+echo "[Fing Agent] Starting add-on v0.2.8..."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
@@ -19,11 +19,10 @@ mkdir -p /app
 echo "[Fing Agent] Creating symlink from /data to /app/fingdata..."
 ln -sfn /data /app/fingdata
 
-# --- THIS IS THE FIX ---
+# --- Change Directory ---
 echo "[Fing Agent] Changing working directory to ${AGENT_DIR}..."
 cd "${AGENT_DIR}"
 
 # --- Execute ---
 echo "[Fing Agent] Found agent. Starting..."
-# This is the line we are fixing (no space in AGENT_EXE)
 exec "./${AGENT_EXE}"
