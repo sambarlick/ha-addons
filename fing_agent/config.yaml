@@ -1,11 +1,9 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.2.16"
+version: "0.2.15"
 slug: "fing_agent"
 
-# --- THIS IS THE FIX ---
-# We are no longer building. We are pulling the official image.
-image: "fing/fing-agent:latest"
+# 'build_from:' is GONE. 'build.json' handles this now.
 
 # --- Network Settings (CRITICAL) ---
 host_network: true
@@ -13,10 +11,9 @@ host_network: true
 # --- Privileges (CRITICAL) ---
 privileged:
   - NET_ADMIN
-  - SYS_ADMIN # We'll keep this just in case
+  - SYS_ADMIN 
 
 # --- Persistent Data ---
-# This maps /config/addons/fing_agent/data to /data
 map: ["data:rw"] 
 
 # --- Architecture Support ---
@@ -24,9 +21,7 @@ arch:
   - aarch64
   - amd64
   - armv7
-
-# --- Start & Boot ---
-# We still need run.sh to create our symlink
+  
 init: false 
 startup: "application"
 boot: "auto"
@@ -35,4 +30,5 @@ boot: "auto"
 documentation: "https://github.com/sambarlick/ha-addons/blob/main/fing_agent/README.md"
 support: "https://github.com/sambarlick/ha-addons/issues"
 url: "https://www.fing.com"
-codeowners: ["@sambarlick"]
+codeowners: ["@sambar
+lick"]
