@@ -19,6 +19,6 @@ This add-on requires no configuration.
 
 ## Attribution
 
-This add-on is a wrapper for the official Docker image provided by **Fing**. All credit for the Fing Agent software, its functionality, and the "Fing" name and brand belong to Fing (fing.com).
+This add-on is a wrapper for the official Docker image provided by **Fing**. All credit for the Fing Agent software, it's functionality, and the "Fing" name and brand belong to Fing (fing.com).
 
 This add-on simply makes it possible to run their official agent on Home Assistant OS.
