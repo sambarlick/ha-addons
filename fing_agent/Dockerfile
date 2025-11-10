@@ -9,8 +9,8 @@ RUN \
     apt-get update && \
     apt-get install -y curl jq && \
     # --- THIS IS THE FIX ---
-    # Using the correct, official installer URL
-    curl -L "https://raw.githubusercontent.com/home-assistant/addons/master/bashio/installer.sh" | bash
+    # Using the correct 'main' branch, not 'master'
+    curl -L "https://raw.githubusercontent.com/home-assistant/addons/main/bashio/installer.sh" | bash
 
 # --- Copy our startup script ---
 COPY run.sh /
