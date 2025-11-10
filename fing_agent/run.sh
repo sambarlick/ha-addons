@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.16 (Simple Method)..."
+echo "[Fing Agent] Starting add-on v0.2.15..."
+echo "[Fing Agent] This is now running INSIDE the official container."
 
 # --- Path Definitions ---
-# This is the path inside the official container
 AGENT_DIR="/usr/local/FingAgent"
 AGENT_EXE="fingagent"
 AGENT_PATH="${AGENT_DIR}/${AGENT_EXE}"
 FING_DATA_DIR="/app/fingdata"
-
-# The HA add-on provides its persistent data at /data
-HA_DATA_DIR="/data"
+HA_DATA_DIR="/data" # This is where HA maps our 'data:rw'
 
 echo "[Fing Agent] Checking for agent at ${AGENT_PATH}..."
 if [ ! -f "${AGENT_PATH}" ]; then
@@ -19,8 +17,6 @@ if [ ! -f "${AGENT_PATH}" ]; then
 fi
 
 # --- Symlink Creation ---
-# This links the HA persistent folder (/data) to the
-# folder the Fing agent expects (/app/fingdata).
 echo "[Fing Agent] Ensuring parent directory /app exists..."
 mkdir -p /app
 echo "[Fing Agent] Creating symlink from ${HA_DATA_DIR} to ${FING_DATA_DIR}..."
