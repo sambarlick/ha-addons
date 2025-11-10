@@ -9,8 +9,9 @@ FROM ${BUILD_FROM}
 
 # --- THIS IS THE FIX ---
 # Install the missing Debian/Ubuntu compatibility libraries
-# that the Fing binary needs to run on Alpine Linux.
-RUN apk add --no-cache libc6-compat
+# libc6-compat (for basic C libraries)
+# libstdc++ (for the C++ libraries like libboost)
+RUN apk add --no-cache libc6-compat libstdc++
 
 # --- Copy The Files ---
 COPY --from=fing_files /usr/local/ /usr/local/
