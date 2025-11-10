@@ -9,4 +9,4 @@ This is a personal repository of Home Assistant add-ons.
 3.  Paste the following URL into the "Add repository" box and click **Add**:
 
 ```text
-[https://github.com/sambarlick/ha-addons](https://github.com/sambarlick/ha-addons)
+https://github.com/sambarlick/ha-addons
