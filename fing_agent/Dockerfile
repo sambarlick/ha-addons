@@ -7,7 +7,10 @@ FROM ${BUILD_FROM}
 # This places our setup script in /etc/cont-init.d/
 COPY rootfs /
 
+# --- THE FIX ---
+# This command runs during the build and makes our script
+# executable. This avoids all git permission issues.
+RUN chmod a+x /etc/cont-init.d/01-fing-setup.sh
+
 # We do NOT add a CMD.
 # We let the base image's s6 entrypoint run.
-# It will automatically find and execute our 01-fing-setup.sh script
-# before starting the main fingagent service.
