@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.3..."
+echo "[Fing Agent] Starting add-on v0.2.4..."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
-AGENT_EXE="fingagent" # The name of the file
+AGENT_EXE="fingagent"
 AGENT_PATH="${AGENT_DIR}/${AGENT_EXE}"
 
 echo "[Fing Agent] Checking for agent at ${AGENT_PATH}..."
@@ -25,6 +25,5 @@ cd "${AGENT_DIR}"
 
 # --- Execute ---
 echo "[Fing Agent] Found agent. Starting..."
-# Now we execute it using a relative path from inside its own folder
-exec "./${AGENT_
-EXE}"
+# This is the line we are fixing (no space in AGENT_EXE)
+exec "./${AGENT_EXE}"
