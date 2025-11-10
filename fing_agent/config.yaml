@@ -1,0 +1,36 @@
+name: "Fing Agent (Local)"
+description: "Runs the official fing/fing-agent container"
+version: "1.0.0"
+slug: "fing_agent"
+
+# --- Build Process ---
+# This tells HA to build from the Dockerfile in this folder
+# and to use fing/fing-agent as the base image for each architecture.
+build_from:
+  aarch64: "fing/fing-agent:latest"
+  amd64: "fing/fing-agent:latest"
+  armv7: "fing/fing-agent:latest"
+
+# --- Network Settings (CRITICAL) ---
+# This gives the container full access to your network for scanning
+host_network: true
+
+# --- Privileges (CRITICAL) ---
+# Required for network administration tasks as per Fing's docs
+privileged:
+  - NET_ADMIN
+
+# --- Persistent Data ---
+# This maps the add-on's persistent folder to /data inside the container
+map: ["data:rw"]
+
+# --- Architecture Support ---
+arch:
+  - aarch64
+  - amd64
+  - armv7
+
+# --- Start & Boot ---
+init: false # We are using our own run.sh
+startup: "application"
+boot: "auto"
