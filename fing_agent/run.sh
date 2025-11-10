@@ -2,7 +2,6 @@
 set -e
 
 echo "[Fing Agent] Starting add-on..."
-echo "[Fing Agent] This is now running INSIDE the official container."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
@@ -18,11 +17,19 @@ if [ ! -f "${AGENT_PATH}" ]; then
 fi
 
 # --- Symlink Creation ---
-# This is the key to data persistence
 echo "[Fing Agent] Ensuring parent directory /app exists..."
 mkdir -p /app
 echo "[Fing Agent] Linking HA data dir (${HA_DATA_DIR}) to Fing data dir (${FING_DATA_DIR})..."
 ln -sfn "${HA_DATA_DIR}" "${FING_DATA_DIR}"
+
+# --- Environment Setup (THE FIX) ---
+# Force the agent to use its own bundled libraries
+export LD_LIBRARY_PATH="${AGENT_DIR}/lib"
+echo "[Fing Agent] Set LD_LIBRARY_PATH to: ${LD_LIBRARY_PATH}"
+
+# Tell the agent where its data directory is
+export FING_DATA_DIR="${FING_DATA_DIR}"
+echo "[Fing Agent] Set FING_DATA_DIR to: ${FING_DATA_DIR}"
 
 # --- Change Directory ---
 echo "[Fing Agent] Changing working directory to ${AGENT_DIR}..."
@@ -30,6 +37,4 @@ cd "${AGENT_DIR}"
 
 # --- Execute ---
 echo "[Fing Agent] Found agent. Starting..."
-# 'exec' replaces the current process (this script)
-# with the agent, so it becomes the main process.
 exec "./${AGENT_EXE}"
