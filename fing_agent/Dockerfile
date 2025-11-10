@@ -7,18 +7,17 @@ FROM fing/fing-agent:latest AS fing_files
 # --- Stage 2: The Home Assistant Add-on ---
 FROM ${BUILD_FROM}
 
-# --- Install Alpine-native libraries ---
-# We need all the libraries the agent *would* have used
-RUN apk add --no-cache libc6-compat gcompat libstdc++ boost
+# --- THIS IS THE "KITCHEN SINK" FIX ---
+# Install ALL compatibility libraries at once:
+# libc6-compat: Basic C library compatibility
+# gcompat: Fuller C library (glibc) compatibility
+# libstdc++: The C++ standard library
+# libintl: The C++ localization library (for the libboost_locale error)
+RUN apk add --no-cache libc6-compat gcompat libstdc++ libintl
 
-# --- Copy The Fing Agent Files ---
+# --- Copy The Files ---
+# We copy EVERYTHING and delete NOTHING
 COPY --from=fing_files /usr/local/ /usr/local/
-
-# --- THIS IS THE FIX ---
-# Delete the Debian-compiled libboost libraries we just copied.
-# This will force the agent to fall back to the Alpine-native
-# boost libraries we installed with 'apk add'.
-RUN rm -f /usr/local/FingAgent/lib/libboost*
 
 # --- Copy our startup script ---
 COPY run.sh /
