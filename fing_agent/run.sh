@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.10..."
+echo "[Fing Agent] Starting add-on v0.2.11..."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
