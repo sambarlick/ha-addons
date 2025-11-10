@@ -30,5 +30,4 @@ boot: "auto"
 documentation: "https://github.com/sambarlick/ha-addons/blob/main/fing_agent/README.md"
 support: "https://github.com/sambarlick/ha-addons/issues"
 url: "https://www.fing.com"
-codeowners: ["@sambar
-lick"]
+codeowners: ["@sambarlick"]
