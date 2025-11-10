@@ -8,5 +8,4 @@ COPY run.sh /
 RUN chmod a+x /run.sh
 
 # Tell the container to run our script on start
-CMD [ "/run.sh"
-]
+CMD [ "/run.sh" ]
