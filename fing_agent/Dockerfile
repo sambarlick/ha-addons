@@ -11,8 +11,9 @@ FROM ${BUILD_FROM}
 # Install the missing Debian/Ubuntu compatibility libraries
 # libc6-compat (for basic C libraries)
 # libstdc++ (for C++ libraries)
-# libintl (for C++ localization/internationalization libraries)
-RUN apk add --no-cache libc6-compat libstdc++ libintl
+# libintl (for C++ localization)
+# boost (for the libboost libraries)
+RUN apk add --no-cache libc6-compat libstdc++ libintl boost
 
 # --- Copy The Files ---
 COPY --from=fing_files /usr/local/ /usr/local/
