@@ -32,5 +32,4 @@ if [ -z "${AGENT_PATH}" ]; then
 fi
 
 echo "[Fing Agent] Found agent at ${AGENT_PATH}. Starting..."
-exec "${AGEN
-T_PATH}"
+exec "${AGENT_PATH}"
