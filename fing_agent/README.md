@@ -1,4 +1,3 @@
-```markdown
 # Fing Agent Add-on
 
 Runs the official `fing/fing-agent` Docker container as a Home Assistant add-on.
