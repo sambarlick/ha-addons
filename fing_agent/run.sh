@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.2..."
+echo "[Fing Agent] Starting add-on v0.2.3..."
 
-# --- Path Definition ---
-# The log from 0.2.1 (logs-8.txt) proved the path is
-# NOT in the /bin/ subfolder, but in the root of FingAgent.
-AGENT_PATH="/usr/local/FingAgent/fingagent"
+# --- Path Definitions ---
+AGENT_DIR="/usr/local/FingAgent"
+AGENT_EXE="fingagent" # The name of the file
+AGENT_PATH="${AGENT_DIR}/${AGENT_EXE}"
 
 echo "[Fing Agent] Checking for agent at ${AGENT_PATH}..."
 if [ ! -f "${AGENT_PATH}" ]; then
@@ -19,6 +19,12 @@ mkdir -p /app
 echo "[Fing Agent] Creating symlink from /data to /app/fingdata..."
 ln -sfn /data /app/fingdata
 
+# --- THIS IS THE FIX ---
+echo "[Fing Agent] Changing working directory to ${AGENT_DIR}..."
+cd "${AGENT_DIR}"
+
 # --- Execute ---
 echo "[Fing Agent] Found agent. Starting..."
-exec "${AGENT_PATH}"
+# Now we execute it using a relative path from inside its own folder
+exec "./${AGENT_
+EXE}"
