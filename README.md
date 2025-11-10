@@ -1,19 +1,12 @@
-# ha-addons
-Home Assistant Add-ons
+# Sam's Home Assistant Add-on Repository
 
-# Fing Agent Add-on
+This is a personal repository of Home Assistant add-ons.
 
-Runs the official `fing/fing-agent` Docker container as a Home Assistant add-on.
+## 💾 How to Install
 
-This agent allows your Home Assistant instance to be discovered by the Fing mobile app and enables the official Fing integration in Home Assistant.
+1.  In Home Assistant, navigate to **Settings** > **Add-ons** > **Add-on Store**.
+2.  Click the **3-dot menu** in the top-right corner and select **Repositories**.
+3.  Paste the following URL into the "Add repository" box and click **Add**:
 
-## How to Use
-
-1.  **Start the Add-on:** Make sure the add-on is started and running.
-2.  **Open Fing App:** Open the Fing mobile app on your phone (while connected to the same network).
-3.  **Link Agent:** The app should automatically discover a new, unlinked agent. Follow the prompts in the app to link this agent to your Fing account.
-4.  **Add HA Integration:** Once linked, go to **Settings > Devices & Services** in Home Assistant, click **Add Integration**, and search for **Fing**. It will connect to this local agent.
-
-## Configuration
-
-This add-on requires no configuration.
+```text
+[https://github.com/sambarlick/ha-addons](https://github.com/sambarlick/ha-addons)
