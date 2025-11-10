@@ -7,17 +7,22 @@ FROM fing/fing-agent:latest AS fing_files
 # --- Stage 2: The Home Assistant Add-on ---
 FROM ${BUILD_FROM}
 
-# --- Install Alpine-native libraries ---
-# We install all the Alpine-native versions of the libraries.
-RUN apk add --no-cache libc6-compat gcompat libstdc++ boost
+# --- THIS IS THE DATA-DRIVEN FIX ---
+# Install all known dependencies, mapped to their Alpine names
+RUN apk add --no-cache \
+    libc6-compat \
+    gcompat \
+    libstdc++ \
+    libintl \
+    openssl3 \
+    protobuf-c \
+    zlib \
+    lz4-libs \
+    zstd-libs
 
-# --- Copy The Fing Agent Files ---
+# --- Copy The Files ---
+# We copy EVERYTHING and delete NOTHING
 COPY --from=fing_files /usr/local/ /usr/local/
-
-# --- THIS IS THE FIX ---
-# Delete ALL the Debian-compiled libraries we just copied.
-# This forces the agent to use the Alpine-native ones from /usr/lib.
-RUN rm -f /usr/local/FingAgent/lib/*.so*
 
 # --- Copy our startup script ---
 COPY run.sh /
