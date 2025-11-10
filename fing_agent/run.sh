@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.16..."
+echo "[Fing Agent] Starting add-on v0.2.17..."
 echo "[Fing Agent] This is now running INSIDE the official container."
 
 # --- Path Definitions ---
