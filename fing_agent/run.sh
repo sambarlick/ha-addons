@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "[Fing Agent] Starting add-on v0.2.12..."
+echo "[Fing Agent] Starting add-on v0.2.13..."
 
 # --- Path Definitions ---
 AGENT_DIR="/usr/local/FingAgent"
@@ -22,8 +22,7 @@ echo "[Fing Agent] Creating symlink from /data to /app/fingdata..."
 ln -sfn /data /app/fingdata
 
 # --- Set Library Path ---
-# This path ensures the agent finds its OWN libraries first,
-# and then falls back to the system libraries (where the native boost is).
+# This path ensures the agent finds its OWN Debian libraries first.
 export LD_LIBRARY_PATH="${AGENT_LIB_PATH}:${SYSTEM_LIB_PATH}"
 echo "[Fing Agent] Set LD_LIBRARY_PATH to: ${LD_LIBRARY_PATH}"
 
