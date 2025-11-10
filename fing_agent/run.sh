@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e # Exit on error
 
-echo "[Fing Agent] Starting DIAGNOSTIC script v5 (Version 0.0.8)..."
+echo "[Fing Agent] Starting DIAGNOSTIC script v5 (Version 0.0.9)..."
 echo "--- This script will test if the new Dockerfile 'FROM' directive worked. ---"
 
 echo "--- Test 1: Checking container OS ---"
@@ -27,5 +27,5 @@ echo "--- Test 2: Searching ALL directories for ANY file with 'fing' in the name
 find / -name "*fing*" 2>/dev/null || echo "No files with 'fing' in the name found."
 
 echo "--- DIAGNOSTIC SCRIPT V5 COMPLETE ---"
-echo "--- The add-on will now stop, which is expected. -
---"
+echo "--- The add-on will now stop, which is expected. 
+---"
