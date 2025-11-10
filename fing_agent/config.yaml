@@ -1,6 +1,6 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.3.1"
+version: "0.3.2"
 slug: "fing_agent"
 
 # 'build_from:' is GONE. 'build.json' handles this now.
