@@ -1,6 +1,6 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.2.0" # <-- Bumped to Beta!
+version: "0.2.1"
 slug: "fing_agent"
 
 # --- Build Process ---
