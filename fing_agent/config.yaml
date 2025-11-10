@@ -1,11 +1,14 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.0.9"
+version: "0.1.0" # <-- Bumped to Beta!
 slug: "fing_agent"
 
 # --- Build Process ---
-# The 'build_from:' section has been REMOVED.
-# The Dockerfile now handles the 'FROM' line directly.
+# THIS IS THE FIX: We are putting this section BACK.
+build_from:
+  aarch64: "fing/fing-agent:latest"
+  amd64: "fing/fing-agent:latest"
+  armv7: "fing/fing-agent:latest"
 
 # --- Network Settings (CRITICAL) ---
 host_network: true
@@ -14,8 +17,7 @@ host_network: true
 privileged:
   - NET_ADMIN
   - SYS_ADMIN
-
-# --- Persistent Data ---
+  
 map: ["data:rw"]
 
 # --- Architecture Support ---
@@ -23,9 +25,8 @@ arch:
   - aarch64
   - amd64
   - armv7
-
-# --- Start & Boot ---
-init: false # We are using our own run.sh
+  
+init: false 
 startup: "application"
 boot: "auto"
 
