@@ -1,14 +1,11 @@
 name: "Fing Agent"
 description: "Runs the official fing/fing-agent container"
-version: "0.1.0" # <-- Bumped to Beta!
+version: "0.2.0" # <-- Bumped to Beta!
 slug: "fing_agent"
 
 # --- Build Process ---
-# THIS IS THE FIX: We are putting this section BACK.
-build_from:
-  aarch64: "fing/fing-agent:latest"
-  amd64: "fing/fing-agent:latest"
-  armv7: "fing/fing-agent:latest"
+# 'build_from:' has been REMOVED.
+# The Dockerfile will now handle everything.
 
 # --- Network Settings (CRITICAL) ---
 host_network: true
@@ -31,7 +28,7 @@ startup: "application"
 boot: "auto"
 
 # --- Professional Section ---
-documentation: "https://github.com/sambarlick/ha-addons/blob/main/fing_agent/README.md"
+documentation: "https://github.com/sambarlick/ha-addons/blobS/main/fing_agent/README.md"
 support: "https://github.com/sambarlick/ha-addons/issues"
 url: "https://www.fing.com"
 codeowners: ["@sambarlick"]
