@@ -1,6 +1,6 @@
 name: "Fing Agent (Local)"
 description: "Runs the official fing/fing-agent container"
-version: "1.0.1"
+version: "1.0.02"
 slug: "fing_agent"
 
 # --- Build Process ---
