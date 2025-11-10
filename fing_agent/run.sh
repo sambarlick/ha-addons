@@ -6,6 +6,7 @@ echo "[Fing Agent] Starting add-on v0.2.14..."
 AGENT_DIR="/usr/local/FingAgent"
 AGENT_EXE="fingagent"
 AGENT_PATH="${AGENT_DIR}/${AGENT_EXE}"
+AGENT_LIB_PATH="${AGENT_DIR}/lib"
 SYSTEM_LIB_PATH="/usr/lib"
 
 echo "[Fing Agent] Checking for agent at ${AGENT_PATH}..."
@@ -20,9 +21,9 @@ mkdir -p /app
 echo "[Fing Agent] Creating symlink from /data to /app/fingdata..."
 ln -sfn /data /app/fingdata
 
-# --- THIS IS THE FIX ---
-# Force the linker to ONLY use the Alpine system libraries.
-export LD_LIBRARY_PATH="${SYSTEM_LIB_PATH}"
+# --- Set Library Path ---
+# This path ensures the agent finds its OWN Debian libraries first.
+export LD_LIBRARY_PATH="${AGENT_LIB_PATH}:${SYSTEM_LIB_PATH}"
 echo "[Fing Agent] Set LD_LIBRARY_PATH to: ${LD_LIBRARY_PATH}"
 
 # --- Change Directory ---
