@@ -2,15 +2,11 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# --- Copy our s6-overlay script ---
-# We copy our rootfs directory to the container's root
-# This places our setup script in /etc/cont-init.d/
-COPY rootfs /
+# Copy our startup script
+COPY run.sh /run.sh
 
-# --- THE FIX ---
-# This command runs during the build and makes our script
-# executable. This avoids all git permission issues.
-RUN chmod a+x /etc/cont-init.d/01-fing-setup.sh
+# Make it executable (this is correct)
+RUN chmod a+x /run.sh
 
-# We do NOT add a CMD.
-# We let the base image's s6 entrypoint run.
+# Tell the container to run our script instead of its default
+CMD [ "/run.sh" ]
