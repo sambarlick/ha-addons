@@ -1,3 +1,4 @@
+```markdown
 # Fing Agent Add-on
 
 Runs the official `fing/fing-agent` Docker container as a Home Assistant add-on.
@@ -14,3 +15,11 @@ This agent allows your Home Assistant instance to be discovered by the Fing mobi
 ## Configuration
 
 This add-on requires no configuration.
+
+---
+
+## Attribution
+
+This add-on is a wrapper for the official Docker image provided by **Fing**. All credit for the Fing Agent software, its functionality, and the "Fing" name and brand belong to Fing (fing.com).
+
+This add-on simply makes it possible to run their official agent on Home Assistant OS.
