@@ -3,7 +3,7 @@ description: >-
   Rock-solid GPS tracking for your Caravan. 
   Bridges GPSD to MQTT with persistent entity IDs.
 url: https://github.com/sambarlick/ha-addons/tree/main/caravan_gps
-version: "2026.2.9"
+version: "2026.2.10"
 slug: "caravan_gps"
 init: false
 arch:
