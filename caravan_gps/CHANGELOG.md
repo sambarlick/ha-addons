@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.2.14
+
+### Fixed
+Startup Lock: Fixed a critical bug where the "Parking Lock" (anti-jitter) prevented the coordinates from populating on startup. If the add-on started while the caravan was parked, the latitude/longitude would stay at 0.0 indefinitely. Added an startup_override check to force the first valid GPS fix to be accepted regardless of vehicle speed.
+
+Discovery Config: Double-checked the Jinja templates in create_config to ensure attributes like accuracy_m attach correctly to their parent sensors without breaking the main state value.
+
 ## 2026.2.13
 
 ### Fixed
