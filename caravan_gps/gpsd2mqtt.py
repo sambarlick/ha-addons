@@ -17,10 +17,8 @@ mqtt_port = data.get("mqtt_port") or 1883
 mqtt_username = sys.argv[1]
 mqtt_pw = sys.argv[2]
 
-publish_3d_fix_only = data.get("publish_3d_fix_only", False)
-min_n_satellites = data.get("min_n_satellites") or 0
-debug = data.get("debug", False)
 publish_interval = data.get("publish_interval") or 10
+debug = data.get("debug", False)
 
 # MQTT Topics
 topic_prefix = f"gpsd2mqtt/{UNIQUE_ID}"
@@ -47,7 +45,6 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     if msg.topic == "homeassistant/status" and msg.payload.decode() == "online":
-        logger.info("HA Restart detected. Sending Discovery Config...")
         publish_discovery()
 
 client.on_connect = on_connect
@@ -61,20 +58,28 @@ def publish_discovery():
         "manufacturer": "Caravan"
     }
 
-    # 1. Device Tracker (For the Map)
-    tracker_config = {
-        "unique_id": f"{UNIQUE_ID}_location",
-        "name": "Caravan Location",
-        "json_attributes_topic": f"{topic_prefix}/attr",
-        "icon": "mdi:caravan",
-        "source_type": "gps",
-        "payload_home": "home",
-        "payload_not_home": "not_home",
-        "device": device_info
-    }
-    client.publish(f"{ha_discovery_prefix}/device_tracker/{UNIQUE_ID}/config", json.dumps(tracker_config), retain=True)
+    # Helper to create sensor config
+    def create_config(name, uid_suffix, template, unit=None, icon=None, device_class=None):
+        config = {
+            "unique_id": f"{UNIQUE_ID}_{uid_suffix}",
+            "name": name,
+            "state_topic": f"{topic_prefix}/attr",
+            "value_template": template,
+            "device": device_info
+        }
+        if unit: config["unit_of_measurement"] = unit
+        if icon: config["icon"] = icon
+        if device_class: config["device_class"] = device_class
+        
+        # Publish
+        client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_{uid_suffix}/config", json.dumps(config), retain=True)
 
-    # 2. Satellite Count
+    # --- 1. LATITUDE & LONGITUDE (SEPARATED) ---
+    create_config("Caravan Latitude", "lat", "{{ value_json.latitude }}", icon="mdi:latitude")
+    create_config("Caravan Longitude", "lon", "{{ value_json.longitude }}", icon="mdi:longitude")
+
+    # --- 2. SATELLITES (SEPARATE TOPIC) ---
+    # Satellites come from a different message type, so we configure it manually
     sat_config = {
         "unique_id": f"{UNIQUE_ID}_satellites",
         "name": "GPS Satellites Locked",
@@ -85,44 +90,23 @@ def publish_discovery():
     }
     client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats/config", json.dumps(sat_config), retain=True)
 
-    # 3. Speed Sensor
-    speed_config = {
-        "unique_id": f"{UNIQUE_ID}_speed",
-        "name": "Caravan Speed",
-        "state_topic": f"{topic_prefix}/attr",
-        "value_template": "{{ value_json.speed | float(0) | round(1) }}",
-        "unit_of_measurement": "m/s",
-        "device_class": "speed",
-        "device": device_info
-    }
-    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_speed/config", json.dumps(speed_config), retain=True)
+    # --- 3. OTHER SENSORS ---
+    create_config("Caravan Speed", "speed", "{{ value_json.speed | float(0) | round(1) }}", unit="m/s", device_class="speed")
+    create_config("Caravan Elevation", "alt", "{{ value_json.altitude | float(0) | round(1) }}", unit="m", device_class="distance", icon="mdi:elevation-rise")
+    create_config("Caravan Climb", "climb", "{{ value_json.climb | float(0) | round(1) }}", unit="m/s", icon="mdi:arrow-up-bold")
+    create_config("Caravan Mode", "mode", "{{ value_json.mode_str }}", icon="mdi:crosshairs-gps")
+    create_config("Caravan Time", "time", "{{ value_json.time }}", device_class="timestamp")
 
-    # 4. Altitude Sensor
-    alt_config = {
-        "unique_id": f"{UNIQUE_ID}_altitude",
-        "name": "Caravan Altitude",
-        "state_topic": f"{topic_prefix}/attr",
-        "value_template": "{{ value_json.altitude | float(0) | round(1) }}",
-        "unit_of_measurement": "m",
-        "device_class": "distance",
-        "icon": "mdi:elevation-rise",
-        "device": device_info
-    }
-    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_alt/config", json.dumps(alt_config), retain=True)
-    
-    logger.info("MQTT Discovery Sent (Tracker + Sensors).")
+    logger.info("MQTT Discovery Sent: All Sensors Separated.")
 
 # --- MAIN LOOP ---
-logger.info("Connecting to MQTT...")
 client.connect(mqtt_broker, mqtt_port)
 client.loop_start()
 
-logger.info("Connecting to GPSD...")
 while True:
     try:
         with GPSDClient(host="127.0.0.1") as gps_client:
-            logger.info("GPSD Connected. Streaming Data...")
-            
+            logger.info("GPSD Connected.")
             last_publish = datetime.datetime.now()
 
             for raw_result in gps_client.json_stream():
@@ -137,25 +121,27 @@ while True:
 
                 elif result.get("class") == "TPV":
                     mode = result.get("mode", 1)
-                    if mode < 2:
-                        continue
+                    if mode < 2: continue
 
-                    # We publish one JSON blob, and all sensors read from it
+                    # Map mode number to text
+                    mode_str = "No Fix"
+                    if mode == 2: mode_str = "2D Fix"
+                    if mode == 3: mode_str = "3D Fix"
+
                     payload = {
                         "latitude": result.get("lat"),
                         "longitude": result.get("lon"),
                         "altitude": result.get("alt", 0),
-                        "gps_accuracy": result.get("epx", 0),
                         "speed": result.get("speed", 0),
-                        "climb": result.get("climb", 0)
+                        "climb": result.get("climb", 0),
+                        "time": result.get("time"),
+                        "mode_str": mode_str
                     }
 
                     if (datetime.datetime.now() - last_publish).total_seconds() >= publish_interval:
                         client.publish(f"{topic_prefix}/attr", json.dumps(payload))
                         last_publish = datetime.datetime.now()
-                        if debug:
-                            logger.debug(f"Location Sent: {payload}")
 
     except Exception as e:
-        logger.error(f"GPSD Error or Disconnect: {e}")
+        logger.error(f"GPSD Error: {e}")
         time.sleep(5)
