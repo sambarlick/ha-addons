@@ -59,7 +59,7 @@ def publish_discovery():
     }
 
     # Helper to create sensor config
-    def create_config(name, uid_suffix, template, unit=None, icon=None, device_class=None):
+    def create_config(name, uid_suffix, template, unit=None, icon=None, device_class=None, attributes=False):
         config = {
             "unique_id": f"{UNIQUE_ID}_{uid_suffix}",
             "name": name,
@@ -71,33 +71,62 @@ def publish_discovery():
         if icon: config["icon"] = icon
         if device_class: config["device_class"] = device_class
         
+        # If we want extra attributes (like accuracy) on this sensor
+        if attributes:
+             config["json_attributes_topic"] = f"{topic_prefix}/attr"
+        
         # Publish
         client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_{uid_suffix}/config", json.dumps(config), retain=True)
 
-    # --- 1. LATITUDE & LONGITUDE (SEPARATED) ---
-    create_config("Caravan Latitude", "lat", "{{ value_json.latitude }}", icon="mdi:latitude")
-    create_config("Caravan Longitude", "lon", "{{ value_json.longitude }}", icon="mdi:longitude")
-
-    # --- 2. SATELLITES (SEPARATE TOPIC) ---
-    # Satellites come from a different message type, so we configure it manually
-    sat_config = {
-        "unique_id": f"{UNIQUE_ID}_satellites",
+    # --- 1. SATELLITES (Now separated into Locked and Total) ---
+    # These subscribe to the 'satellites' topic, not 'attr'
+    sat_locked_config = {
+        "unique_id": f"{UNIQUE_ID}_satellites_locked",
         "name": "GPS Satellites Locked",
         "state_topic": f"{topic_prefix}/satellites",
+        "value_template": "{{ value_json.used }}",
         "unit_of_measurement": "sat",
         "icon": "mdi:satellite-uplink",
         "device": device_info
     }
-    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats/config", json.dumps(sat_config), retain=True)
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats_locked/config", json.dumps(sat_locked_config), retain=True)
 
-    # --- 3. OTHER SENSORS ---
+    sat_total_config = {
+        "unique_id": f"{UNIQUE_ID}_satellites_total",
+        "name": "GPS Satellites Total",
+        "state_topic": f"{topic_prefix}/satellites",
+        "value_template": "{{ value_json.visible }}",
+        "unit_of_measurement": "sat",
+        "icon": "mdi:satellite-variant",
+        "device": device_info
+    }
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats_total/config", json.dumps(sat_total_config), retain=True)
+    
+    # --- 2. PRECISION (HDOP) ---
+    # Also usually comes from SKY, we'll bundle it there
+    hdop_config = {
+        "unique_id": f"{UNIQUE_ID}_hdop",
+        "name": "GPS HDOP",
+        "state_topic": f"{topic_prefix}/satellites",
+        "value_template": "{{ value_json.hdop }}",
+        "icon": "mdi:target",
+        "device": device_info
+    }
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_hdop/config", json.dumps(hdop_config), retain=True)
+
+
+    # --- 3. MAIN SENSORS ---
+    # Note: attributes=True adds the full JSON payload as attributes to Lat/Lon
+    create_config("Caravan Latitude", "lat", "{{ value_json.latitude }}", icon="mdi:latitude", attributes=True)
+    create_config("Caravan Longitude", "lon", "{{ value_json.longitude }}", icon="mdi:longitude", attributes=True)
+    
     create_config("Caravan Speed", "speed", "{{ value_json.speed | float(0) | round(1) }}", unit="m/s", device_class="speed")
     create_config("Caravan Elevation", "alt", "{{ value_json.altitude | float(0) | round(1) }}", unit="m", device_class="distance", icon="mdi:elevation-rise")
     create_config("Caravan Climb", "climb", "{{ value_json.climb | float(0) | round(1) }}", unit="m/s", icon="mdi:arrow-up-bold")
     create_config("Caravan Mode", "mode", "{{ value_json.mode_str }}", icon="mdi:crosshairs-gps")
     create_config("Caravan Time", "time", "{{ value_json.time }}", device_class="timestamp")
 
-    logger.info("MQTT Discovery Sent: All Sensors Separated.")
+    logger.info("MQTT Discovery Sent: Expanded Sensor Set.")
 
 # --- MAIN LOOP ---
 client.connect(mqtt_broker, mqtt_port)
@@ -116,14 +145,18 @@ while True:
                     continue
 
                 if result.get("class") == "SKY":
-                    n_satellites = result.get("uSat", 0)
-                    client.publish(f"{topic_prefix}/satellites", str(n_satellites))
+                    # Create a specific payload for satellite health
+                    sat_payload = {
+                        "used": result.get("uSat", 0),
+                        "visible": result.get("nSat", 0),
+                        "hdop": result.get("hdop", 99.9)
+                    }
+                    client.publish(f"{topic_prefix}/satellites", json.dumps(sat_payload))
 
                 elif result.get("class") == "TPV":
                     mode = result.get("mode", 1)
                     if mode < 2: continue
 
-                    # Map mode number to text
                     mode_str = "No Fix"
                     if mode == 2: mode_str = "2D Fix"
                     if mode == 3: mode_str = "3D Fix"
@@ -135,7 +168,8 @@ while True:
                         "speed": result.get("speed", 0),
                         "climb": result.get("climb", 0),
                         "time": result.get("time"),
-                        "mode_str": mode_str
+                        "mode_str": mode_str,
+                        "accuracy_m": result.get("epx", 0) # Horizontal error estimate
                     }
 
                     if (datetime.datetime.now() - last_publish).total_seconds() >= publish_interval:
