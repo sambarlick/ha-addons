@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.2.1
+
+### Fixed
+- **Persistent Entities:** Fixed issue where entities (Location, Satellite Count) became "Unavailable" or created duplicates after every reboot. Now uses a static Unique ID (`caravan_gps`).
+- **Read-Only Error:** Fixed `gpsd` crashing or throwing "Read-only file system" errors on Home Assistant OS by adding the `-b` (broken-safe) flag.
+- **Connection Stability:** Forced `gpsd` to listen on all interfaces (`-G`) and start immediately (`-n`) to prevent connection timeouts.
+
+### Changed
+- **Default Device:** Updated default device path to specific u-blox ID for better hardware detection.
+- **Satellite Logic:** Improved handling of satellite data to report "0" instead of going unavailable when signal is lost.
+- **Repository URL:** Corrected internal links to point to the `sambarlick` repository.
+
+
 ## [2025.12.0] - 2025-12-10
 - Add option to connect to TCP based device for GPS data
 - Upgrade to version 3.26.1 of GPSD
