@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.2.7
+
+### Fixed
+- **Cleanup:** Added aggressive "Nuke" logic to force the removal of stuck Device Trackers and duplicate Ghost entities from versions 2026.2.3 and older.
+
+
 ## 2026.2.5
 
 ### Added
