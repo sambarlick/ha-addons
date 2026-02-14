@@ -10,8 +10,7 @@ from gpsdclient import GPSDClient
 with open("/data/options.json", "r") as jsonfile:
     data = json.load(jsonfile)
 
-# We ignore the random ID generation. 
-# We use a STATIC ID so Home Assistant entities survive reboots.
+# STATIC UNIQUE ID - Fixes "Unavailable" entities after reboot
 UNIQUE_ID = "caravan_gps"
 
 mqtt_broker = data.get("mqtt_broker") or "core-mosquitto"
@@ -95,11 +94,10 @@ client.connect(mqtt_broker, mqtt_port)
 client.loop_start()
 
 logger.info("Connecting to GPSD...")
-# Connect to localhost because run.sh launches gpsd in the same container
 # Retry loop for GPSD connection
 while True:
     try:
-        # We define the client inside the loop to handle reconnects
+        # Define client inside loop to handle auto-reconnects
         with GPSDClient(host="127.0.0.1") as gps_client:
             logger.info("GPSD Connected. Streaming Data...")
             
@@ -113,14 +111,10 @@ while True:
 
                 # --- HANDLE SATELLITES (SKY) ---
                 if result.get("class") == "SKY":
-                    # uSat is 'Used Satellites' (The green bars)
                     n_satellites = result.get("uSat", 0)
                     
-                    # Always publish satellite count instantly
+                    # Publish satellite count immediately
                     client.publish(f"{topic_prefix}/satellites", str(n_satellites))
-                    
-                    # Also publish full SKY json to attributes for debugging
-                    # client.publish(f"{topic_prefix}/sky_attr", json.dumps(result))
 
                 # --- HANDLE POSITION (TPV) ---
                 elif result.get("class") == "TPV":
@@ -136,7 +130,8 @@ while True:
                         "longitude": result.get("lon"),
                         "altitude": result.get("alt", 0),
                         "gps_accuracy": result.get("epx", 0), # Horizontal error
-                        "speed": result.get("speed", 0)
+                        "speed": result.get("speed", 0),
+                        "climb": result.get("climb", 0)
                     }
 
                     # Throttle updates
