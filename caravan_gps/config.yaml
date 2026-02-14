@@ -1,9 +1,8 @@
-name: "Caravan GPS (GPSD)"
+name: "Caravan GPS (MQTT)"
 description: >-
-  Professional GPS tracking for caravans. Based on the excellent work by Corvy.
-  This addon runs GPSD to provide high-accuracy location data via MQTT.
-url: https://github.com/sambarlick/ha-addons/tree/main/caravan_gps
-version: "2025.12.0"
+  Rock-solid GPS tracking for your Caravan. 
+  Bridges GPSD to MQTT with persistent entity IDs.
+version: "2026.2.1"
 slug: "caravan_gps"
 init: false
 arch:
@@ -14,31 +13,28 @@ services:
   - mqtt:need
 options:
   input_type: serial
-  device: "/dev/ttyS0"
+  # Your specific device path is now the default
+  device: "/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00"
   publish_3d_fix_only: false
-  gpsd_options: "-n"
+  # We handle the critical flags in run.sh, leaving this blank allows user overrides if needed
+  gpsd_options: "" 
+  debug: false
 schema:
   input_type: list(serial|tcp)
-  device: device(subsystem=tty)?
+  device: str
   baudrate: int?
-  charsize: int?
-  parity: bool?
-  stopbit: int?
-  tcp_host: str?
-  tcp_port: int?
   publish_3d_fix_only: bool?
   min_n_satellites: int?
   publish_interval: int?
-  summary_interval: int?
   mqtt_broker: str?
   mqtt_port: int?
   mqtt_username: str?
   mqtt_pw: str?
-  mqtt_state: str?
   gpsd_options: str?
   debug: bool?
 ports:
   2947/tcp: 2947
 devices:
+  - /dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00
   - /dev/pps0
-#image: ghcr.io/corvy/{arch}-addon-gpsd2mqtt-beta
+startup: application
