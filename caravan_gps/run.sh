@@ -10,7 +10,8 @@ GPSD_USER_OPTIONS=$(bashio::config 'gpsd_options')
 # -n: Don't wait for client (start now)
 # -G: Listen on all interfaces (crucial for HA to see it)
 # -b: Read-only/Broken-safe (Prevents the "chmod failed" error on HAOS)
-GPSD_OPTIONS="-n -G -b ${GPSD_USER_OPTIONS}"
+# -N: Don't daemonize (we handle backgrounding manually with &)
+GPSD_OPTIONS="-n -G -b -N ${GPSD_USER_OPTIONS}"
 
 GPSD_SOCKET="/var/run/gpsd.sock"
 
@@ -49,14 +50,14 @@ if [ "$INPUT_TYPE" = "serial" ]; then
     stty -F ${DEVICE} speed ${BAUDRATE} cs8 -cstopb -parenb raw 2>/dev/null || true
 
     bashio::log.info "Starting GPSD..."
-    # Launch GPSD in background
-    /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} -s ${BAUDRATE} ${DEVICE}
+    # Launch GPSD in background with & (CRITICAL FIX)
+    /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} -s ${BAUDRATE} ${DEVICE} &
 
 elif [ "$INPUT_TYPE" = "tcp" ]; then
     TCP_HOST=$(bashio::config 'tcp_host')
     TCP_PORT=$(bashio::config 'tcp_port')
     bashio::log.info "Starting GPSD via TCP..."
-    /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} tcp://${TCP_HOST}:${TCP_PORT}
+    /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} tcp://${TCP_HOST}:${TCP_PORT} &
 fi
 
 # Wait a moment for GPSD to stabilize
