@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.2.9
+
+### Fixed
+Mode Translation: Fixed a bug where sensor.caravan_gps_mode was reporting as empty/blank. The script now correctly translates the raw GPSD mode integers (2, 3) into human-readable text (2D Fix, 3D Fix).
+Startup State: Added a default value ("No Fix") to the internal state to prevent the Mode sensor from being Unknown on startup before the first GPS packet arrives.
+
+### Changed
+Entity Naming: Renamed the "Caravan Mode" sensor to "Caravan GPS Mode" to be more descriptive and avoid confusion with other system modes (e.g., alarm or sleep modes).
+
 ## 2026.2.8
 
 ### Added
