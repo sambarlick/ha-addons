@@ -2,6 +2,7 @@ name: "Caravan GPS (MQTT)"
 description: >-
   Rock-solid GPS tracking for your Caravan. 
   Bridges GPSD to MQTT with persistent entity IDs.
+url: https://github.com/sambarlick/ha-addons/tree/main/caravan_gps
 version: "2026.2.1"
 slug: "caravan_gps"
 init: false
@@ -13,10 +14,8 @@ services:
   - mqtt:need
 options:
   input_type: serial
-  # Your specific device path is now the default
   device: "/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00"
   publish_3d_fix_only: false
-  # We handle the critical flags in run.sh, leaving this blank allows user overrides if needed
   gpsd_options: "" 
   debug: false
 schema:
