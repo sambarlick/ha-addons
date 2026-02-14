@@ -39,6 +39,8 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logger.info("Connected to MQTT Broker.")
         client.subscribe("homeassistant/status")
+        # Run cleanup first, then publish new config
+        cleanup_old_entities()
         publish_discovery()
     else:
         logger.error(f"Failed to connect to MQTT: {rc}")
@@ -49,6 +51,20 @@ def on_message(client, userdata, msg):
 
 client.on_connect = on_connect
 client.on_message = on_message
+
+def cleanup_old_entities():
+    """Sends empty payloads to clear out old/ghost entities from previous versions."""
+    logger.info("Running cleanup of old entities...")
+    
+    # 1. Kill the old Device Tracker (The Home/Away sensor)
+    client.publish(f"{ha_discovery_prefix}/device_tracker/{UNIQUE_ID}_location/config", "", retain=True)
+    client.publish(f"{ha_discovery_prefix}/device_tracker/{UNIQUE_ID}/config", "", retain=True)
+    
+    # 2. Kill old/duplicate Satellite sensors from previous versions
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_satellites/config", "", retain=True)
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats/config", "", retain=True)
+    
+    logger.info("Cleanup commands sent.")
 
 def publish_discovery():
     device_info = {
@@ -71,15 +87,17 @@ def publish_discovery():
         if icon: config["icon"] = icon
         if device_class: config["device_class"] = device_class
         
-        # If we want extra attributes (like accuracy) on this sensor
+        # Add attributes topic if requested (for Accuracy, etc)
         if attributes:
              config["json_attributes_topic"] = f"{topic_prefix}/attr"
         
         # Publish
         client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_{uid_suffix}/config", json.dumps(config), retain=True)
 
-    # --- 1. SATELLITES (Now separated into Locked and Total) ---
-    # These subscribe to the 'satellites' topic, not 'attr'
+    # --- 1. SATELLITES (Locked & Total) ---
+    # We use a separate topic 'satellites' for these to ensure they update on SKY messages
+    
+    # LOCKED (Used)
     sat_locked_config = {
         "unique_id": f"{UNIQUE_ID}_satellites_locked",
         "name": "GPS Satellites Locked",
@@ -91,6 +109,7 @@ def publish_discovery():
     }
     client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats_locked/config", json.dumps(sat_locked_config), retain=True)
 
+    # TOTAL (Visible)
     sat_total_config = {
         "unique_id": f"{UNIQUE_ID}_satellites_total",
         "name": "GPS Satellites Total",
@@ -102,8 +121,7 @@ def publish_discovery():
     }
     client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats_total/config", json.dumps(sat_total_config), retain=True)
     
-    # --- 2. PRECISION (HDOP) ---
-    # Also usually comes from SKY, we'll bundle it there
+    # HDOP
     hdop_config = {
         "unique_id": f"{UNIQUE_ID}_hdop",
         "name": "GPS HDOP",
@@ -115,8 +133,8 @@ def publish_discovery():
     client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_hdop/config", json.dumps(hdop_config), retain=True)
 
 
-    # --- 3. MAIN SENSORS ---
-    # Note: attributes=True adds the full JSON payload as attributes to Lat/Lon
+    # --- 2. MAIN SENSORS ---
+    # These read from the 'attr' topic
     create_config("Caravan Latitude", "lat", "{{ value_json.latitude }}", icon="mdi:latitude", attributes=True)
     create_config("Caravan Longitude", "lon", "{{ value_json.longitude }}", icon="mdi:longitude", attributes=True)
     
@@ -126,7 +144,7 @@ def publish_discovery():
     create_config("Caravan Mode", "mode", "{{ value_json.mode_str }}", icon="mdi:crosshairs-gps")
     create_config("Caravan Time", "time", "{{ value_json.time }}", device_class="timestamp")
 
-    logger.info("MQTT Discovery Sent: Expanded Sensor Set.")
+    logger.info("MQTT Discovery Sent: Cleanup + New Sensors.")
 
 # --- MAIN LOOP ---
 client.connect(mqtt_broker, mqtt_port)
@@ -145,11 +163,12 @@ while True:
                     continue
 
                 if result.get("class") == "SKY":
-                    # Create a specific payload for satellite health
+                    # Fix for "Total Satellites" showing empty
+                    # We ensure 'visible' is always sent as an integer
                     sat_payload = {
-                        "used": result.get("uSat", 0),
-                        "visible": result.get("nSat", 0),
-                        "hdop": result.get("hdop", 99.9)
+                        "used": int(result.get("uSat", 0)),
+                        "visible": int(result.get("nSat", 0)),
+                        "hdop": float(result.get("hdop", 99.9))
                     }
                     client.publish(f"{topic_prefix}/satellites", json.dumps(sat_payload))
 
@@ -169,7 +188,9 @@ while True:
                         "climb": result.get("climb", 0),
                         "time": result.get("time"),
                         "mode_str": mode_str,
-                        "accuracy_m": result.get("epx", 0) # Horizontal error estimate
+                        # Adding extra attributes for the UI
+                        "accuracy_m": result.get("epx", 0),
+                        "satellites_used": result.get("uSat", 0) # Redundant but useful for attributes
                     }
 
                     if (datetime.datetime.now() - last_publish).total_seconds() >= publish_interval:
