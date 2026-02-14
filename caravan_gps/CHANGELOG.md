@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.2.4
+
+### Changed
+- **Full Sensor Split:** Removed the `device_tracker` entirely.
+- **New Entities:** Latitude and Longitude are now separate sensors (`sensor.caravan_latitude`, `sensor.caravan_longitude`).
+- **Added:** Added `Climb`, `Mode`, and `Time` sensors to match the standard GPSD integration feature set.
+- **Organization:** All data is now organized as individual sensors under the "Caravan GPS System" device.
+
 ## 2026.2.3
 
 ### Added
