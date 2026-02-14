@@ -81,7 +81,9 @@ def publish_discovery():
     }
 
     def create_config(name, uid_suffix, template, unit=None, icon=None, device_class=None, value_topic=None, attr_template=None):
+        # Default topic is the main attribute topic
         topic = value_topic if value_topic else f"{topic_prefix}/attr"
+        
         config = {
             "unique_id": f"{UNIQUE_ID}_{uid_suffix}",
             "name": name,
@@ -89,12 +91,13 @@ def publish_discovery():
             "value_template": template,
             "device": device_info
         }
+        
         if unit: config["unit_of_measurement"] = unit
         if icon: config["icon"] = icon
         if device_class: config["device_class"] = device_class
         
-        # PROFESSIONAL ATTRIBUTES: 
-        # We pass a specific Jinja template to carve out ONLY the relevant attributes for this sensor
+        # Attribute Logic:
+        # If we have an attribute template, we MUST set the attribute topic to the same topic as state
         if attr_template:
             config["json_attributes_topic"] = topic
             config["json_attributes_template"] = attr_template
@@ -113,25 +116,20 @@ def publish_discovery():
         "payload_on": "Connected",
         "payload_off": "Lost",
         "device": device_info,
-        # Attribute: Show the raw Mode string (e.g. "3D Fix") on the status entity
         "json_attributes_topic": f"{topic_prefix}/attr",
-        "json_attributes_template": "{{ {'mode': value_json.mode_str} | tojson }}" 
+        "json_attributes_template": "{{ {'mode': value_json.mode_str} | tojson }}"
     }
     client.publish(f"{ha_discovery_prefix}/binary_sensor/{UNIQUE_ID}_fix_status/config", json.dumps(fix_config), retain=True)
 
     # 2. Heading
-    # State: Compass Direction (N, NW)
-    # Attribute: Bearing (Degrees)
     create_config(
         "Caravan Heading", "heading", 
         "{{ value_json.heading_cardinal }}", 
         icon="mdi:compass",
-        attr_template="{{ {'bearing': value_json.heading_deg} | tojson }}"
+        attr_template="{{ {'bearing_deg': value_json.heading_deg} | tojson }}"
     )
 
     # 3. Speed
-    # State: km/h
-    # Attribute: m/s (Raw calculation)
     create_config(
         "Caravan Speed", "speed", 
         "{{ value_json.speed_kmh | float(0) | round(1) }}", 
@@ -142,9 +140,7 @@ def publish_discovery():
     )
 
     # 4. Latitude & Longitude
-    # State: Coordinate
-    # Attribute: Accuracy (meters)
-    # We use the same accuracy value for both as it represents the horizontal positional error
+    # Ensure value_template matches keys in current_state exactly
     create_config(
         "Caravan Latitude", "lat", 
         "{{ value_json.latitude }}", 
@@ -159,8 +155,6 @@ def publish_discovery():
     )
 
     # 5. Elevation
-    # State: Meters
-    # Attribute: Vertical Error (epv) if available, otherwise reuse general accuracy
     create_config(
         "Caravan Elevation", "alt", 
         "{{ value_json.altitude | float(0) | round(1) }}", 
@@ -173,7 +167,7 @@ def publish_discovery():
     create_config("Caravan Gradient", "gradient", "{{ value_json.gradient }}", icon="mdi:slope-uphill")
     create_config("GPS Atomic Time", "time", "{{ value_json.time_str }}", icon="mdi:clock-digital")
     
-    # 7. Satellite Stats (Topics are separate, logic remains the same)
+    # 7. Satellite Stats
     sat_locked = {
         "unique_id": f"{UNIQUE_ID}_satellites_locked",
         "name": "GPS Satellites Locked",
@@ -230,8 +224,8 @@ current_state = {
 }
 
 # FILTER SETTINGS
-LOW_SPEED_THRESHOLD = 1.0  # m/s (3.6 km/h) - If slower than this, we are "Parked"
-LAT_LON_DECIMALS = 6       # Rounding precision (~11cm)
+LOW_SPEED_THRESHOLD = 1.0  # m/s
+LAT_LON_DECIMALS = 6       # Rounding precision
 
 while True:
     try:
@@ -249,8 +243,6 @@ while True:
                 if result.get("class") == "SKY":
                     n_sat = int(result.get("nSat", 0))
                     
-                    # Ignore 0-sat glitches if we have a fix
-                    # Note: we check fix_status string for simplicity here
                     if n_sat == 0 and current_state["fix_status"] == "Connected":
                         continue
                         
@@ -283,13 +275,13 @@ while True:
                             current_state["speed_kmh"] = raw_speed_ms * 3.6
                             current_state["speed_ms"] = round(raw_speed_ms, 2)
                             
-                            # HEADING (Only update when moving)
+                            # HEADING
                             if "track" in result:
                                 heading = float(result["track"])
                                 current_state["heading_deg"] = round(heading, 1)
                                 current_state["heading_cardinal"] = degrees_to_cardinal(heading)
 
-                            # LOCATION (Only update when moving = PARKING LOCK)
+                            # LOCATION (Parking Lock)
                             if "lat" in result: current_state["latitude"] = round(result["lat"], LAT_LON_DECIMALS)
                             if "lon" in result: current_state["longitude"] = round(result["lon"], LAT_LON_DECIMALS)
                             if "alt" in result: current_state["altitude"] = round(result["alt"], 1)
@@ -308,16 +300,13 @@ while True:
                                     current_state["time_str"] = ts.split("T")[1].split(".")[0] 
                             except: pass
 
-                        # Horizontal Accuracy (epx/epy)
                         if "epx" in result and "epy" in result:
                             max_err = max(float(result.get("epx", 0)), float(result.get("epy", 0)))
                             current_state["accuracy_m"] = round(max_err, 1)
-                            
-                        # Vertical Accuracy (epv)
+
                         if "epv" in result:
                              current_state["accuracy_v"] = round(float(result["epv"]), 1)
                         else:
-                             # Fallback to horizontal if vertical unavailable, or keep 0
                              current_state["accuracy_v"] = current_state["accuracy_m"]
 
                         # GRADIENT
