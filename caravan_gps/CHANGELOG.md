@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026.2.12
+### Changed
+Architecture Overhaul: Removed the "Master Sensor" concept. MQTT payloads are now properly filtered so that attributes are only attached to their relevant entities.
+sensor.caravan_speed now holds the speed_ms attribute.
+sensor.caravan_heading now holds the bearing (degrees) attribute.
+sensor.caravan_latitude and longitude now hold the accuracy_m attribute.
+sensor.caravan_elevation now holds the vertical_accuracy_m attribute.
+binary_sensor.caravan_gps_fix_status now holds the mode (e.g., "3D Fix") attribute.
+Data Hygiene: The internal current_state dictionary was flattened to make templating cleaner and more reliable.
+
+### Fixed
+Jitter Control: Parking Lock logic (Speed < 3.6km/h) is retained and active.
+Accuracy Reporting: Split accuracy into Horizontal (accuracy_m) for coordinates and Vertical (accuracy_v) for elevation, providing more precise tolerance data for the Altimeter.
+
+## 2026.2.11
+
+### Fixed
+Anti-Jitter (Parking Lock): Implemented a "Static Navigation" logic. When the caravan speed drops below 3.6 km/h (parked), the script stops updating Latitude, Longitude, and Elevation. This eliminates 100% of the "map wander" or "jitter" while the caravan is stationary.
+Precision Rounding: When moving, coordinates are now rounded to 6 decimal places (~11cm) to filter out signal noise.
+
+### Changed
+Attribute Cleanup: Confirmed that sensor.caravan_latitude acts as the "Master Sensor" holding all technical data (Speed, Heading, Accuracy) in its attributes for advanced diagnostics.
+
 ## 2026.2.10
 
 ### Added
