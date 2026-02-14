@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026.2.8
+
+### Added
+Sensor: binary_sensor.caravan_gps_fix_status (Connected/Lost). This replaces the vague "seconds ago" time check with a clear connectivity status.
+Sensor: sensor.caravan_gradient (Climbing ↗️ / Descending ↘️ / Level ➡️). Replaces the raw "Climb" (m/s) sensor with human-readable text.
+
+### Changed
+Unit Conversion: Speed is now reported in km/h (previously m/s) to match standard vehicle speedometers.
+Time Format: sensor.caravan_gps_time now displays as a static clock (e.g., 14:32:01) rather than a relative "seconds ago" timestamp.
+State Persistence: Implemented a caching system to prevent data (Altitude, Speed) from flickering to 0 or Unknown between GPS packets.
+Jitter Filter: Added a threshold (1.0 m/s) to force Speed to 0 km/h when the caravan is parked, eliminating GPS drift.
+
+### Fixed
+Satellite Glitch: Added logic to ignore "0 Satellite" reports if the GPS still maintains a valid 2D/3D fix.
+
 ## 2026.2.7
 
 ### Fixed
