@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.2.10
+
+### Added
+Feature: Added Compass Direction translation. Heading is now displayed as "N", "NW", "SE", etc., instead of raw degrees.
+Sensor: sensor.caravan_heading (Compass Direction).
+Attributes: The sensor.caravan_latitude entity now includes a full set of technical attributes in the "More Info" dialog, including:
+accuracy_m (GPS Error in meters)
+heading_deg (Raw 360° heading)
+speed_kmh (Raw speed)
+gradient
+
+### Changed
+Logic: Heading updates are now "Locked" when the vehicle is stationary (Speed < 1.0 m/s). This prevents the compass sensor from spinning wildly due to GPS drift when parked.
+
+### Fixed
+Cleanliness: Removed the need for separate sensors for Accuracy and Raw Heading by moving them to attributes, keeping the dashboard clean.
+
 ## 2026.2.9
 
 ### Fixed
