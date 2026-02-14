@@ -70,7 +70,7 @@ def nuke_legacy_entities():
         f"{ha_discovery_prefix}/sensor/gps_satellites_locked/config",
         f"{ha_discovery_prefix}/sensor/caravan_gps_system_gps_satellites_locked/config",
         # Previous Iteration sensors
-        f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_climb/config" # We replaced Climb with Gradient
+        f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_climb/config"
     ]
     
     for topic in ghosts:
@@ -115,21 +115,24 @@ def publish_discovery():
     }
     client.publish(f"{ha_discovery_prefix}/binary_sensor/{UNIQUE_ID}_fix_status/config", json.dumps(fix_config), retain=True)
 
-    # --- 2. UPDATED: Speed in km/h ---
+    # --- 2. UPDATED: Mode (Renamed & Fixed) ---
+    create_config("Caravan GPS Mode", "mode", "{{ value_json.mode_str }}", icon="mdi:crosshairs-gps")
+
+    # --- 3. UPDATED: Speed in km/h ---
     create_config("Caravan Speed", "speed", "{{ value_json.speed_kmh | float(0) | round(1) }}", unit="km/h", device_class="speed", icon="mdi:speedometer")
 
-    # --- 3. UPDATED: Gradient Text Sensor ---
+    # --- 4. UPDATED: Gradient Text Sensor ---
     create_config("Caravan Gradient", "gradient", "{{ value_json.gradient }}", icon="mdi:slope-uphill")
 
-    # --- 4. UPDATED: Time (String format) ---
+    # --- 5. UPDATED: Time (String format) ---
     create_config("GPS Atomic Time", "time", "{{ value_json.time_str }}", icon="mdi:clock-digital")
 
-    # --- 5. STANDARD SENSORS ---
+    # --- 6. STANDARD SENSORS ---
     create_config("Caravan Latitude", "lat", "{{ value_json.latitude }}", icon="mdi:latitude")
     create_config("Caravan Longitude", "lon", "{{ value_json.longitude }}", icon="mdi:longitude")
     create_config("Caravan Elevation", "alt", "{{ value_json.altitude | float(0) | round(1) }}", unit="m", icon="mdi:elevation-rise")
     
-    # --- 6. SATELLITE SENSORS ---
+    # --- 7. SATELLITE SENSORS ---
     sat_locked = {
         "unique_id": f"{UNIQUE_ID}_satellites_locked",
         "name": "GPS Satellites Locked",
@@ -168,7 +171,7 @@ def publish_discovery():
 client.connect(mqtt_broker, mqtt_port)
 client.loop_start()
 
-# State persistence: These are the defaults until real data arrives
+# State persistence
 current_state = {
     "latitude": 0.0,
     "longitude": 0.0,
@@ -177,12 +180,12 @@ current_state = {
     "gradient": "Level ➡️",
     "time_str": "--:--:--",
     "fix_status": "Lost",
-    "mode": 1 # 1=No Fix, 2=2D, 3=3D
+    "mode": 1,
+    "mode_str": "No Fix" # Default value to prevent blank sensor
 }
 
 while True:
     try:
-        # Connect to GPSD
         with GPSDClient(host="127.0.0.1") as gps_client:
             logger.info("GPSD Connected.")
             last_publish = datetime.datetime.now()
@@ -197,8 +200,6 @@ while True:
                 if result.get("class") == "SKY":
                     n_sat = int(result.get("nSat", 0))
                     
-                    # LOGIC: If we have a fix (mode > 1), ignore 0 sats as a glitch.
-                    # If we have NO fix (mode <= 1), 0 sats is real.
                     if n_sat == 0 and current_state["mode"] > 1:
                         continue
                         
@@ -212,35 +213,35 @@ while True:
                 # --- POSITION (TPV) ---
                 elif result.get("class") == "TPV":
                     mode = result.get("mode", 1)
-                    current_state["mode"] = mode # Update state for the Sky check logic
+                    current_state["mode"] = mode 
+                    
+                    # FIX: Translate mode number to text for the sensor
+                    if mode == 1: current_state["mode_str"] = "No Fix"
+                    elif mode == 2: current_state["mode_str"] = "2D Fix"
+                    elif mode == 3: current_state["mode_str"] = "3D Fix"
 
                     # Binary Sensor Logic
                     if mode < 2:
                         current_state["fix_status"] = "Lost"
-                        # If lost, we keep old position data but mark status as lost
                     else:
                         current_state["fix_status"] = "Connected"
                         
-                        # Only update data if we have a fix AND the key exists in the packet
                         if "lat" in result: current_state["latitude"] = result["lat"]
                         if "lon" in result: current_state["longitude"] = result["lon"]
                         if "alt" in result: current_state["altitude"] = result["alt"]
                         
-                        # TIME LOGIC: Convert ISO to HH:MM:SS
+                        # TIME LOGIC
                         if "time" in result:
-                            # TPV time is usually "2023-10-27T10:00:00.000Z"
                             try:
                                 ts = result["time"]
-                                # Simple string slice to get HH:MM:SS
                                 if "T" in ts:
                                     time_part = ts.split("T")[1].split(".")[0] 
                                     current_state["time_str"] = time_part
                             except:
                                 pass
 
-                        # SPEED LOGIC: Convert m/s to km/h and apply jitter filter
+                        # SPEED LOGIC
                         raw_speed_ms = float(result.get("speed", 0))
-                        # Threshold 1.0 m/s = 3.6 km/h. If slower, report 0.
                         if raw_speed_ms < 1.0:
                             current_state["speed_kmh"] = 0.0
                         else:
@@ -256,11 +257,11 @@ while True:
                             else:
                                 current_state["gradient"] = "Level ➡️"
 
-                    # Throttle Publishing to avoid MQTT spam
+                    # Publish interval
                     if (datetime.datetime.now() - last_publish).total_seconds() >= publish_interval:
                         client.publish(f"{topic_prefix}/attr", json.dumps(current_state))
                         last_publish = datetime.datetime.now()
 
     except Exception as e:
         logger.error(f"GPSD Connection Error: {e}")
-        time.sleep(5) # Wait 5 seconds before retrying connection
+        time.sleep(5)
