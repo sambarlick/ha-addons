@@ -2,7 +2,7 @@ name: "Caravan GPS (GPSD)"
 description: >-
   Professional GPS tracking for caravans. Based on the excellent work by Corvy.
   This addon runs GPSD to provide high-accuracy location data via MQTT.
-url: https://github.com/sambarlick/ha-addons/tree/main/gpsd2mqtt
+url: https://github.com/sambarlick/ha-addons/tree/main/caravan_gps
 version: "2025.12.0"
 slug: "caravan_gps"
 init: false
