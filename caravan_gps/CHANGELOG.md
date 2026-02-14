@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.2.13
+
+### Fixed
+Discovery Logic: Fixed a critical bug in the create_config helper where adding attributes (like accuracy) was accidentally breaking the main State Topic configuration, causing sensors like Latitude and Longitude to report as Unknown or empty.
+
+Attribute Scoping: Completely removed the "Master Sensor" concept. Attributes are now strictly scoped to the sensor they belong to:
+
+sensor.caravan_latitude → accuracy_m
+
+sensor.caravan_speed → speed_ms
+
+sensor.caravan_heading → bearing_deg
+
+sensor.caravan_elevation → vertical_accuracy_m
+
+### Changed
+Code Cleanliness: Flattened the internal state dictionary (current_state) to make it easier to maintain and less prone to "nested dictionary" errors in Jinja templates.
+
 ## 2026.2.12
 ### Changed
 Architecture Overhaul: Removed the "Master Sensor" concept. MQTT payloads are now properly filtered so that attributes are only attached to their relevant entities.
