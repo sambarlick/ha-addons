@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.2.5
+
+### Added
+- **Sensor:** `sensor.caravan_satellites_total` (Visible satellites).
+- **Sensor:** `sensor.caravan_hdop` (GPS Precision/Quality).
+- **Attribute:** Added `accuracy_m` to Latitude/Longitude sensors.
+
+### Removed
+- **Device Tracker:** Removed the "Location" (Home/Away) entity to reduce clutter.
+
+
 ## 2026.2.4
 
 ### Changed
