@@ -9,7 +9,7 @@ GPSD_USER_OPTIONS=$(bashio::config 'gpsd_options')
 # FORCE these flags for stability:
 # -n: Don't wait for client (start now)
 # -G: Listen on all interfaces (crucial for HA to see it)
-# -b: Read-only (Prevents the "chmod failed" error)
+# -b: Read-only/Broken-safe (Prevents the "chmod failed" error on HAOS)
 GPSD_OPTIONS="-n -G -b ${GPSD_USER_OPTIONS}"
 
 GPSD_SOCKET="/var/run/gpsd.sock"
