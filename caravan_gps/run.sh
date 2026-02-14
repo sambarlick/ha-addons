@@ -1,62 +1,38 @@
 #!/usr/bin/with-contenv bashio
 
-# Get the device config
-CONFIG_PATH="/data/options.json"
+# --- CONFIGURATION ---
 INPUT_TYPE=$(bashio::config 'input_type')
 DEVICE=$(bashio::config 'device')
-TCP_HOST=$(bashio::config 'tcp_host')
-TCP_PORT=$(bashio::config 'tcp_port')
 BAUDRATE=$(bashio::config 'baudrate' 9600)
+GPSD_USER_OPTIONS=$(bashio::config 'gpsd_options')
 
-# Use the -N flag to keep gpsd in the foreground if needed, 
-# but since we run python after, background is fine.
-# Added -n (don't wait) and -b (read-only) explicitly here for safety.
-GPSD_OPTIONS=$(bashio::config 'gpsd_options') 
-GPSD_OPTIONS="${GPSD_OPTIONS} -n -b -G" 
+# FORCE these flags for stability:
+# -n: Don't wait for client (start now)
+# -G: Listen on all interfaces (crucial for HA to see it)
+# -b: Read-only (Prevents the "chmod failed" error)
+GPSD_OPTIONS="-n -G -b ${GPSD_USER_OPTIONS}"
 
-# Define the socket file explicitly so clients can find it
 GPSD_SOCKET="/var/run/gpsd.sock"
 
-CHARSIZE=$(bashio::config 'charsize' 8)
-PARITY=$(bashio::config 'parity' false)
-STOPBIT=$(bashio::config 'stopbit' 1)
-CONTROL="clocal"
-MQTT_USER=$(bashio::config 'mqtt_username')
-MQTT_PASSWORD=$(bashio::config 'mqtt_pw')
-HA_AUTH=false
-
-# stty setup
-if [ "$PARITY" = false ]; then
-  PARITY_CL="-parenb"
-elif [ "$PARITY" = true ]; then
-  PARITY_CL="parenb"
-fi
-
-if [ "$STOPBIT" -eq 1 ]; then
-  STOPBIT_CL="-cstopb"
-elif [ "$STOPBIT" -eq 2 ]; then
-  STOPBIT_CL="cstopb"
-fi
-
-# ----------------------------------------------------------------
-# IMPROVEMENT 1: MQTT Auth Check
-# ----------------------------------------------------------------
+# --- MQTT AUTHENTICATION ---
+# Automatically grab credentials from the Home Assistant Mosquitto Service
 if bashio::config.is_empty 'mqtt_username' && bashio::var.has_value "$(bashio::services 'mqtt')"; then
     MQTT_USER="$(bashio::services 'mqtt' 'username')"
     MQTT_PASSWORD="$(bashio::services 'mqtt' 'password')"
-    HA_AUTH=true
-elif bashio::config.is_empty 'mqtt_username'; then
-    bashio::log.error "No MQTT credentials found. Please configure them or install the Mosquitto Add-on."
+    bashio::log.info "Using internal Home Assistant MQTT service."
+elif ! bashio::config.is_empty 'mqtt_username'; then
+    MQTT_USER=$(bashio::config 'mqtt_username')
+    MQTT_PASSWORD=$(bashio::config 'mqtt_pw')
+    bashio::log.info "Using manual MQTT configuration."
+else
+    bashio::log.error "No MQTT credentials found! Please start the Mosquitto Add-on."
     exit 1
 fi
 
-# ----------------------------------------------------------------
-# IMPROVEMENT 2: The "Wait for Device" Loop (Vital for Caravans)
-# ----------------------------------------------------------------
+# --- DEVICE HANDLING ---
 if [ "$INPUT_TYPE" = "serial" ]; then
-    bashio::log.info "Waiting for GPS device: ${DEVICE}..."
-    
-    # Loop for up to 30 seconds waiting for the USB stick to appear
+    bashio::log.info "Looking for GPS Device: ${DEVICE}"
+
     count=0
     while [ ! -e "${DEVICE}" ] && [ $count -lt 30 ]; do
         sleep 1
@@ -64,44 +40,28 @@ if [ "$INPUT_TYPE" = "serial" ]; then
     done
 
     if [ ! -e "${DEVICE}" ]; then
-        bashio::log.error "Timeout! GPS device ${DEVICE} not found after 30 seconds."
-        bashio::log.error "Please check if the USB stick is plugged in."
+        bashio::log.error "GPS Device not found after 30 seconds."
         exit 1
     fi
 
-    bashio::log.info "Device found! Configuring serial port..."
-    
-    # Configure the port with stty
-    # Added error suppression (2>/dev/null) just in case stty is fussy, 
-    # but logging the attempt.
-    /bin/stty -F ${DEVICE} raw ${BAUDRATE} cs${CHARSIZE} ${PARITY_CL} ${CONTROL} ${STOPBIT_CL} || bashio::log.warning "stty configuration had a minor issue, continuing anyway..."
+    bashio::log.info "Device found. Setting baudrate to ${BAUDRATE}..."
+    # Attempt stty but don't fail the script if it complains about permissions
+    stty -F ${DEVICE} speed ${BAUDRATE} cs8 -cstopb -parenb raw 2>/dev/null || true
 
     bashio::log.info "Starting GPSD..."
-    /usr/sbin/gpsd --version
-    
-    # Passing socket (-F) explicitly is good practice
+    # Launch GPSD in background
     /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} -s ${BAUDRATE} ${DEVICE}
 
 elif [ "$INPUT_TYPE" = "tcp" ]; then
-    if [ -z "$TCP_HOST" ] || [ -z "$TCP_PORT" ]; then
-        bashio::log.error "TCP Host and Port must be defined for TCP mode."
-        exit 1
-    fi
-    bashio::log.info "Starting GPSD with TCP source ${TCP_HOST}:${TCP_PORT} ..."
+    TCP_HOST=$(bashio::config 'tcp_host')
+    TCP_PORT=$(bashio::config 'tcp_port')
+    bashio::log.info "Starting GPSD via TCP..."
     /usr/sbin/gpsd ${GPSD_OPTIONS} -F ${GPSD_SOCKET} tcp://${TCP_HOST}:${TCP_PORT}
-else
-    bashio::log.error "Unknown input_type: $INPUT_TYPE"
-    exit 1
 fi
 
-# ----------------------------------------------------------------
-# IMPROVEMENT 3: Python Launcher
-# ----------------------------------------------------------------
-if [ $HA_AUTH = true ]; then
-    bashio::log.info "Starting MQTT Publisher with Home Assistant credentials..."
-else
-    bashio::log.info "Starting MQTT Publisher with username ${MQTT_USER}..."
-fi
-    
-# Launch the python script
-python3 /gpsd2mqtt.py ${MQTT_USER} ${MQTT_PASSWORD}
+# Wait a moment for GPSD to stabilize
+sleep 2
+
+# --- LAUNCH PYTHON BRIDGE ---
+bashio::log.info "Starting MQTT Bridge..."
+python3 /gpsd2mqtt.py "${MQTT_USER}" "${MQTT_PASSWORD}"
