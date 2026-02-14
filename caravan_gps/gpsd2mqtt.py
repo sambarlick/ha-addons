@@ -10,7 +10,6 @@ from gpsdclient import GPSDClient
 with open("/data/options.json", "r") as jsonfile:
     data = json.load(jsonfile)
 
-# STATIC UNIQUE ID - Fixes "Unavailable" entities after reboot
 UNIQUE_ID = "caravan_gps"
 
 mqtt_broker = data.get("mqtt_broker") or "core-mosquitto"
@@ -55,7 +54,14 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 def publish_discovery():
-    # 1. Location Entity (Device Tracker)
+    device_info = {
+        "identifiers": [UNIQUE_ID],
+        "name": "Caravan GPS System",
+        "model": "u-blox 7",
+        "manufacturer": "Caravan"
+    }
+
+    # 1. Device Tracker (For the Map)
     tracker_config = {
         "unique_id": f"{UNIQUE_ID}_location",
         "name": "Caravan Location",
@@ -64,29 +70,47 @@ def publish_discovery():
         "source_type": "gps",
         "payload_home": "home",
         "payload_not_home": "not_home",
-        "device": {
-            "identifiers": [UNIQUE_ID],
-            "name": "Caravan GPS System",
-            "model": "u-blox 7",
-            "manufacturer": "Caravan"
-        }
+        "device": device_info
     }
     client.publish(f"{ha_discovery_prefix}/device_tracker/{UNIQUE_ID}/config", json.dumps(tracker_config), retain=True)
 
-    # 2. Satellite Count (Sensor)
+    # 2. Satellite Count
     sat_config = {
         "unique_id": f"{UNIQUE_ID}_satellites",
         "name": "GPS Satellites Locked",
         "state_topic": f"{topic_prefix}/satellites",
         "unit_of_measurement": "sat",
         "icon": "mdi:satellite-uplink",
-        "device": {
-            "identifiers": [UNIQUE_ID]
-        }
+        "device": device_info
     }
     client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_sats/config", json.dumps(sat_config), retain=True)
+
+    # 3. Speed Sensor
+    speed_config = {
+        "unique_id": f"{UNIQUE_ID}_speed",
+        "name": "Caravan Speed",
+        "state_topic": f"{topic_prefix}/attr",
+        "value_template": "{{ value_json.speed | float(0) | round(1) }}",
+        "unit_of_measurement": "m/s",
+        "device_class": "speed",
+        "device": device_info
+    }
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_speed/config", json.dumps(speed_config), retain=True)
+
+    # 4. Altitude Sensor
+    alt_config = {
+        "unique_id": f"{UNIQUE_ID}_altitude",
+        "name": "Caravan Altitude",
+        "state_topic": f"{topic_prefix}/attr",
+        "value_template": "{{ value_json.altitude | float(0) | round(1) }}",
+        "unit_of_measurement": "m",
+        "device_class": "distance",
+        "icon": "mdi:elevation-rise",
+        "device": device_info
+    }
+    client.publish(f"{ha_discovery_prefix}/sensor/{UNIQUE_ID}_alt/config", json.dumps(alt_config), retain=True)
     
-    logger.info("MQTT Discovery Sent.")
+    logger.info("MQTT Discovery Sent (Tracker + Sensors).")
 
 # --- MAIN LOOP ---
 logger.info("Connecting to MQTT...")
@@ -94,10 +118,8 @@ client.connect(mqtt_broker, mqtt_port)
 client.loop_start()
 
 logger.info("Connecting to GPSD...")
-# Retry loop for GPSD connection
 while True:
     try:
-        # Define client inside loop to handle auto-reconnects
         with GPSDClient(host="127.0.0.1") as gps_client:
             logger.info("GPSD Connected. Streaming Data...")
             
@@ -109,32 +131,25 @@ while True:
                 except:
                     continue
 
-                # --- HANDLE SATELLITES (SKY) ---
                 if result.get("class") == "SKY":
                     n_satellites = result.get("uSat", 0)
-                    
-                    # Publish satellite count immediately
                     client.publish(f"{topic_prefix}/satellites", str(n_satellites))
 
-                # --- HANDLE POSITION (TPV) ---
                 elif result.get("class") == "TPV":
                     mode = result.get("mode", 1)
-                    
-                    # Filter: Only publish if we have a fix (mode 2 or 3)
                     if mode < 2:
                         continue
 
-                    # Home Assistant expects specific keys
+                    # We publish one JSON blob, and all sensors read from it
                     payload = {
                         "latitude": result.get("lat"),
                         "longitude": result.get("lon"),
                         "altitude": result.get("alt", 0),
-                        "gps_accuracy": result.get("epx", 0), # Horizontal error
+                        "gps_accuracy": result.get("epx", 0),
                         "speed": result.get("speed", 0),
                         "climb": result.get("climb", 0)
                     }
 
-                    # Throttle updates
                     if (datetime.datetime.now() - last_publish).total_seconds() >= publish_interval:
                         client.publish(f"{topic_prefix}/attr", json.dumps(payload))
                         last_publish = datetime.datetime.now()
@@ -143,4 +158,4 @@ while True:
 
     except Exception as e:
         logger.error(f"GPSD Error or Disconnect: {e}")
-        time.sleep(5) # Wait before trying to reconnect to GPSD
+        time.sleep(5)
